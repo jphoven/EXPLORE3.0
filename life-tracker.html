@@ -259,7 +259,7 @@ button{font-family:inherit;}
 .card:hover{transform:translateY(-3px);border-color:var(--card-accent,var(--cobalt-pale));box-shadow:var(--shadow);}
 .card-pill{
   display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
-  padding:3px 9px;border-radius:20px;margin-bottom:12px;
+  padding:3px 9px;border-radius:20px;margin-bottom:12px;white-space:nowrap;
   background:var(--card-accent,var(--cobalt));color:var(--ink);
 }
 .card-title{font-family:var(--font-display);font-weight:700;font-size:16.5px;line-height:1.25;}
@@ -289,11 +289,38 @@ button{font-family:inherit;}
   border-radius:10px;padding:10px 12px;font-family:var(--font-mono);font-size:13px;
 }
 .add-row input:focus{outline:none;border-color:var(--cobalt-pale);}
+.add-row input.narrow{flex:0 0 120px;}
 .add-row button{
   background:var(--neon);color:var(--ink);border:none;border-radius:10px;padding:0 16px;
   font-weight:700;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;
 }
 .add-row button:hover{background:var(--cream);}
+
+.pill-time{
+  font-family:var(--font-mono);font-size:10.5px;color:var(--cream-dim);
+  border:1px solid var(--line);border-radius:20px;padding:2px 9px;flex:0 0 auto;
+}
+.warn-pill{
+  display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--ink);background:var(--tan);border-radius:20px;padding:3px 9px;margin:0 0 12px 8px;white-space:nowrap;
+}
+
+/* progress bars */
+.progress-wrap{margin:12px 0 18px;}
+.progress-bar-track{height:9px;background:var(--ink-3);border-radius:6px;overflow:hidden;}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--cobalt),var(--neon));border-radius:6px;transition:width .25s ease;}
+.progress-label{font-size:11px;color:var(--cream-dim);margin-top:7px;letter-spacing:0.03em;}
+
+/* project task groups */
+.task-group{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.task-group h3{font-family:var(--font-display);font-weight:700;font-size:15px;margin:0 0 12px;}
+.wrapped-list{display:flex;flex-direction:column;gap:6px;}
+.wrapped-row{
+  display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:9px 4px;
+  border-bottom:1px solid var(--line);color:var(--cream-dim);
+}
+.wrapped-row a{color:var(--cream-dim);font-weight:700;}
+.wrapped-row a:hover{color:var(--neon);}
 
 /* callout */
 .callout{
@@ -421,21 +448,33 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     <!-- WORK -->
     <section class="panel" id="panel-work">
       <div class="section-block">
-        <h2 class="section-title">Active Client Work <span class="chip-count" id="work-active-count"></span></h2>
-        <p class="section-sub">Live snapshot from Notion → Current Projects</p>
+        <h2 class="section-title">Projects In Progress <span class="chip-count" id="work-active-count"></span></h2>
+        <p class="section-sub">Notion → Current Projects, where Current Project Status = "In progress"</p>
         <div class="card-grid" id="work-active-grid"></div>
       </div>
 
       <div class="section-block">
-        <h2 class="section-title">Leads &amp; Inquiries <span class="chip-count" id="work-leads-count"></span></h2>
-        <p class="section-sub">Live snapshot from Notion → Potential Projects</p>
+        <h2 class="section-title">Leads <span class="chip-count" id="work-leads-count"></span></h2>
+        <p class="section-sub">Notion → Current Projects, where Budget Status is "Awaiting Deposit" or unset</p>
         <div class="card-grid" id="work-leads-grid"></div>
+      </div>
+
+      <div class="section-block">
+        <h2 class="section-title">Recently Wrapped</h2>
+        <p class="section-sub">Finalized &amp; paid in full — for reference</p>
+        <div class="wrapped-list" id="work-wrapped-list"></div>
       </div>
 
       <div class="section-block">
         <h2 class="section-title">This Week / Next</h2>
         <p class="section-sub">Work calendar — meetings, shoots, calls</p>
         <div class="timeline" id="work-timeline"></div>
+      </div>
+
+      <div class="section-block">
+        <h2 class="section-title">Task List</h2>
+        <p class="section-sub">Notion doesn't have a queryable per-task database on your current plan yet — track tasks per project here for now, and ask me to wire it up once your tasks live in one flat, searchable database.</p>
+        <div id="work-task-groups"></div>
       </div>
 
       <div class="section-block">
@@ -453,17 +492,27 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     <section class="panel" id="panel-health">
       <div class="callout">
         <span class="ic">⚡</span>
-        <span><b>Apple Health has no public API</b> — there's no cloud connection this tool can pull from automatically. Log your steps, sleep, and aerobic minutes below each day (from your iPhone's Health app) and this panel will chart it. Ask me to wire up a Shortcuts automation that pushes your Health data into a Notion or Sheets log, and I can make this pull in live.</span>
+        <span><b>Apple Health &amp; Apple Watch have no public API</b> — there's no cloud connection this tool can pull from automatically. Log today's numbers below (from your iPhone's Health app / Watch) and this panel charts it. Ask me to wire up a Shortcuts automation that pushes your Health data into a Notion or Sheets log, and I can make this pull in live.</span>
       </div>
 
       <div class="log-form">
         <div class="field"><label for="in-date">Date</label><input type="date" id="in-date"></div>
         <div class="field"><label for="in-steps">Steps</label><input type="number" id="in-steps" min="0" placeholder="0"></div>
         <div class="field"><label for="in-sleep">Sleep (hrs)</label><input type="number" id="in-sleep" min="0" step="0.1" placeholder="0"></div>
-        <div class="field"><label for="in-active">Aerobic (min)</label><input type="number" id="in-active" min="0" placeholder="0"></div>
+        <div class="field"><label for="in-sleepscore">Sleep Score</label><input type="number" id="in-sleepscore" min="0" max="100" placeholder="0"></div>
+        <div class="field"><label for="in-restinghr">Resting HR</label><input type="number" id="in-restinghr" min="0" placeholder="0"></div>
+        <div class="field"><label for="in-move">Move (kcal)</label><input type="number" id="in-move" min="0" placeholder="0"></div>
+        <div class="field"><label for="in-exercise">Exercise (min)</label><input type="number" id="in-exercise" min="0" placeholder="0"></div>
+        <div class="field"><label for="in-stand">Stand (hrs)</label><input type="number" id="in-stand" min="0" placeholder="0"></div>
         <button id="log-save-btn">Save Log</button>
       </div>
 
+      <h2 class="section-title">Top Stats Today</h2>
+      <p class="section-sub">From your Apple Watch / Health app log above</p>
+      <div class="stat-row" id="health-quick-stats"></div>
+
+      <h2 class="section-title">Activity Rings</h2>
+      <p class="section-sub">Move · Exercise · Stand — goals: 500 kcal / 30 min / 12 hrs</p>
       <div class="ring-row" id="health-rings"></div>
 
       <h2 class="section-title">Last 7 Days — Steps</h2>
@@ -474,6 +523,17 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
         <div class="month-head"><span class="m" id="health-month-label">—</span><span class="section-sub" style="margin:0;">days logged this month</span></div>
         <div class="stat-strip" id="health-stat-strip"></div>
         <div class="grid7" id="health-grid"></div>
+      </div>
+
+      <div class="section-block">
+        <h2 class="section-title">Pill Tracker <span class="chip-count" id="pill-progress-chip"></span></h2>
+        <p class="section-sub">Add each supplement once with its time — check it off daily below</p>
+        <div class="checklist" id="pill-checklist"></div>
+        <div class="add-row">
+          <input type="text" id="pill-name-input" placeholder="Supplement name…" maxlength="80">
+          <input type="text" id="pill-time-input" class="narrow" placeholder="e.g. 8:00 AM" maxlength="20">
+          <button id="pill-add-btn">Add</button>
+        </div>
       </div>
 
       <h2 class="section-title">Upcoming Movement</h2>
@@ -510,6 +570,48 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
           <button id="personal-add-btn">Add</button>
         </div>
       </div>
+
+      <div class="section-block">
+        <h2 class="section-title">House To-Do</h2>
+        <p class="section-sub">One-off house tasks — repairs, errands, projects</p>
+        <div class="checklist" id="house-checklist"></div>
+        <div class="add-row">
+          <input type="text" id="house-add-input" placeholder="Add a house to-do…" maxlength="140">
+          <button id="house-add-btn">Add</button>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h2 class="section-title">Cool Stuff To Watch</h2>
+        <p class="section-sub">Movies &amp; shows on the list — check off once watched</p>
+        <div class="checklist" id="watch-checklist"></div>
+        <div class="add-row">
+          <input type="text" id="watch-add-input" placeholder="Add a movie or show…" maxlength="140">
+          <button id="watch-add-btn">Add</button>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h2 class="section-title">Weekly Chores</h2>
+        <p class="section-sub">Resets automatically every week</p>
+        <div class="progress-wrap" id="chores-weekly-progress"></div>
+        <div class="checklist" id="chores-weekly-list"></div>
+        <div class="add-row">
+          <input type="text" id="chores-weekly-input" placeholder="Add a weekly chore…" maxlength="140">
+          <button id="chores-weekly-btn">Add</button>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h2 class="section-title">Monthly Chores</h2>
+        <p class="section-sub">Resets automatically every month</p>
+        <div class="progress-wrap" id="chores-monthly-progress"></div>
+        <div class="checklist" id="chores-monthly-list"></div>
+        <div class="add-row">
+          <input type="text" id="chores-monthly-input" placeholder="Add a monthly chore…" maxlength="140">
+          <button id="chores-monthly-btn">Add</button>
+        </div>
+      </div>
     </section>
 
     <footer class="note">Bama Brooklyn Life Tracker — Work &amp; Personal data snapshotted from Notion and Google Calendar on Jul 11, 2026. Health is logged manually in this browser (localStorage) since Apple Health has no public API. Re-ask to refresh the Work/Personal snapshot anytime.</footer>
@@ -531,6 +633,15 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
       {id:"seed-fishery", text:"Fishery Fish Lunch — lock 3–4 dishes to accompany the main menu", done:false}
     ];
     state.personalTodos = state.personalTodos || [];
+    state.houseTodos = state.houseTodos || [];
+    state.watchList = state.watchList || [];
+    state.supplements = state.supplements || [];
+    state.pillLog = state.pillLog || {};
+    state.choresWeekly = state.choresWeekly || [];
+    state.choresMonthly = state.choresMonthly || [];
+    state.choresWeeklyDone = state.choresWeeklyDone || {};
+    state.choresMonthlyDone = state.choresMonthlyDone || {};
+    state.projectTasks = state.projectTasks || {};
     return state;
   }
   function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
@@ -568,21 +679,29 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
   tickClock(); setInterval(tickClock, 30000);
 
   // ---------- REAL DATA SNAPSHOT (Jul 11, 2026) ----------
+  // Current Project Status = "In progress"
   var WORK_ACTIVE = [
-    {name:"Collared Martin Hospitality", url:"https://app.notion.com/p/38f438e99a66804b8ec0ea6f672c080a", updated:"2026-07-06"},
-    {name:"Poseidon Project", url:"https://app.notion.com/p/2c0438e99a6680a98396f29ccf57b8cb", updated:"2026-06-30"},
-    {name:"JustDate", url:"https://app.notion.com/p/332438e99a668024bd59cb375ddbb3ce", updated:"2026-06-30"},
-    {name:"itsknit", url:"https://app.notion.com/p/2db438e99a6680c68bcade8a91b23697", updated:"2026-05-23"},
-    {name:"THATCH Visual Identity Refresh", url:"https://app.notion.com/p/237438e99a6680898776c74d2281874e", updated:"2026-06-11"},
-    {name:"One Fine Day — Website Work", url:"https://app.notion.com/p/239438e99a668029b251fb508e11bd62", updated:"2026-03-29"}
+    {name:"Collared Martin Hospitality", url:"https://app.notion.com/p/38f438e99a66804b8ec0ea6f672c080a", budget:"Awaiting Deposit", total:null},
+    {name:"itsknit", url:"https://app.notion.com/p/2db438e99a6680c68bcade8a91b23697", budget:"Deposit Paid", total:1300},
+    {name:"Love James Collective", url:"https://app.notion.com/p/324438e99a66804892aaf21f4a6651aa", budget:"Deposit Paid", total:2250}
   ];
+  // Budget Status = "Awaiting Deposit" or unset (and not already Finalized / already listed above)
   var WORK_LEADS = [
-    {name:"Golden State PR — Website Redesign", url:"https://app.notion.com/p/305438e99a668065abede8aec5f72452", updated:"2026-06-11"},
-    {name:"Charlie Sunscreen Co.", url:"https://app.notion.com/p/1e6438e99a6681c0a972f7e710b71a44", updated:"2026-05-13"},
-    {name:"Last Waav Studios — VCA Microsite", url:"https://app.notion.com/p/2f8438e99a66807a9bdec234ea95a0e5", updated:"2026-05-22"},
-    {name:"Love James Collective", url:"https://app.notion.com/p/324438e99a66804892aaf21f4a6651aa", updated:"2026-06-28"},
-    {name:"Coffee N Clothes: ESPN W", url:"https://app.notion.com/p/1e6438e99a668182821cc3992e7c06a1", updated:"2026-05-13"},
-    {name:"Fudge Fuel Viz ID", url:"https://app.notion.com/p/1e6438e99a66814ca854d2053fdff1e0", updated:"2026-05-13"}
+    {name:"Poseidon Project", url:"https://app.notion.com/p/2c0438e99a6680a98396f29ccf57b8cb", total:3000},
+    {name:"JustDate", url:"https://app.notion.com/p/332438e99a668024bd59cb375ddbb3ce", total:4000},
+    {name:"Charlie Sunscreen Co.", url:"https://app.notion.com/p/1e6438e99a6681c0a972f7e710b71a44", total:7000},
+    {name:"Stork Connections", url:"https://app.notion.com/p/325438e99a66802e8fcde0f8d6b89038", total:5000},
+    {name:"The Juiciest Fruit", url:"https://app.notion.com/p/325438e99a66806984b4df0fa9f4c6fb", total:4000}
+  ];
+  // Current Project Status = "Finalized", Budget Status = "Paid in Full"
+  var WORK_WRAPPED = [
+    {name:"THATCH Visual Identity Refresh", url:"https://app.notion.com/p/237438e99a6680898776c74d2281874e"},
+    {name:"One Fine Day — Website Work", url:"https://app.notion.com/p/239438e99a668029b251fb508e11bd62"},
+    {name:"Golden State PR — Website Redesign", url:"https://app.notion.com/p/305438e99a668065abede8aec5f72452"},
+    {name:"Last Waav Studios — VCA Microsite", url:"https://app.notion.com/p/2f8438e99a66807a9bdec234ea95a0e5"},
+    {name:"Coffee N Clothes: ESPN W", url:"https://app.notion.com/p/1e6438e99a668182821cc3992e7c06a1"},
+    {name:"Fudge Fuel Viz ID", url:"https://app.notion.com/p/1e6438e99a66814ca854d2053fdff1e0"},
+    {name:"JellyJelly Moodboards", url:"https://app.notion.com/p/1e6438e99a6681cc9ba7f8a6f7df6e0a"}
   ];
   var WORK_EVENTS = [
     {date:"2026-07-14", time:"10:00 AM", title:"Chat Pepino Listening Event", loc:"Pepino Eatery & Bakeshop, La Jolla"},
@@ -602,21 +721,57 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
   var CAT_COLOR = {work:"var(--cobalt-pale)", health:"var(--neon)", personal:"var(--tan)"};
 
   // ---------- WORK CARDS ----------
+  function money(n){ return n==null ? "—" : "$"+n.toLocaleString(); }
+  function slug(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,""); }
+
   function renderCards(list, elId, accentVar){
     var el = document.getElementById(elId);
     el.innerHTML = list.map(function(item){
+      var warn = item.budget === "Awaiting Deposit" ? '<span class="warn-pill">Awaiting Deposit</span>' : "";
+      var budgetLine = item.budget ? item.budget : "No deposit on file";
       return '<a class="card" href="'+item.url+'" target="_blank" rel="noopener" style="--card-accent:'+accentVar+'">'+
-        '<span class="card-pill" style="background:'+accentVar+'">'+ (item.pill || "IN NOTION") +'</span>'+
+        '<span class="card-pill" style="background:'+accentVar+'">'+ (item.pill || "IN NOTION") +'</span>'+ warn +
         '<div class="card-title">'+item.name+'</div>'+
-        '<div class="card-meta">Updated '+fmtDateShort(item.updated)+'</div>'+
+        '<div class="card-meta">'+budgetLine+' · '+money(item.total)+'</div>'+
         '<div class="card-link">Open in Notion →</div>'+
       '</a>';
     }).join("");
   }
-  renderCards(WORK_ACTIVE.map(function(x){return Object.assign({},x,{pill:"ACTIVE"});}), "work-active-grid", "var(--cobalt-pale)");
+  renderCards(WORK_ACTIVE.map(function(x){return Object.assign({},x,{pill:"IN PROGRESS"});}), "work-active-grid", "var(--cobalt-pale)");
   renderCards(WORK_LEADS.map(function(x){return Object.assign({},x,{pill:"LEAD"});}), "work-leads-grid", "var(--neon)");
   document.getElementById("work-active-count").textContent = WORK_ACTIVE.length;
   document.getElementById("work-leads-count").textContent = WORK_LEADS.length;
+
+  document.getElementById("work-wrapped-list").innerHTML = WORK_WRAPPED.map(function(w){
+    return '<div class="wrapped-row"><a href="'+w.url+'" target="_blank" rel="noopener">'+w.name+'</a><span>Finalized · Paid in Full</span></div>';
+  }).join("");
+
+  // ---------- PER-PROJECT TASK LISTS ----------
+  var PROJECT_TASK_KEYS = WORK_ACTIVE.map(function(p){ return "task_"+slug(p.name); });
+  PROJECT_TASK_KEYS.forEach(function(k){ state.projectTasks[k] = state.projectTasks[k] || []; });
+
+  function renderProjectTasks(){
+    var el = document.getElementById("work-task-groups");
+    el.innerHTML = WORK_ACTIVE.map(function(p, idx){
+      var key = PROJECT_TASK_KEYS[idx];
+      var items = state.projectTasks[key];
+      var rows = items.length ? items.map(function(it){
+        return '<div class="check-row" data-id="'+it.id+'">'+
+          '<button class="check-box'+(it.done?" done":"")+'" data-taskaction="toggle" data-key="'+key+'" data-id="'+it.id+'"></button>'+
+          '<div class="check-text'+(it.done?" done":"")+'">'+it.text+'</div>'+
+          '<button class="check-del" data-taskaction="delete" data-key="'+key+'" data-id="'+it.id+'">✕</button>'+
+        '</div>';
+      }).join("") : '<div class="check-empty">No tasks yet for '+p.name+'.</div>';
+      return '<div class="task-group">'+
+        '<h3>'+p.name+'</h3>'+
+        '<div class="checklist">'+rows+'</div>'+
+        '<div class="add-row">'+
+          '<input type="text" data-taskadd="'+key+'" placeholder="Add a task for '+p.name+'…" maxlength="140">'+
+          '<button data-taskaddbtn="'+key+'">Add</button>'+
+        '</div>'+
+      '</div>';
+    }).join("");
+  }
 
   // ---------- TIMELINES ----------
   function renderTimeline(events, elId, cat){
@@ -695,8 +850,11 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
   function renderAllChecklists(){
     renderChecklist("workTodos","work-checklist");
     renderChecklist("personalTodos","personal-checklist");
+    renderChecklist("houseTodos","house-checklist");
+    renderChecklist("watchList","watch-checklist");
   }
   renderAllChecklists();
+  renderProjectTasks();
 
   document.addEventListener("click", function(ev){
     var t = ev.target;
@@ -709,7 +867,32 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
       state[t.dataset.list] = state[t.dataset.list].filter(function(i){return i.id!==t.dataset.id;});
       saveState(); renderAllChecklists();
     }
+    if(t.dataset && t.dataset.taskaction === "toggle"){
+      var tl = state.projectTasks[t.dataset.key];
+      var titem = tl.find(function(i){return i.id===t.dataset.id;});
+      if(titem){ titem.done = !titem.done; saveState(); renderProjectTasks(); }
+    }
+    if(t.dataset && t.dataset.taskaction === "delete"){
+      state.projectTasks[t.dataset.key] = state.projectTasks[t.dataset.key].filter(function(i){return i.id!==t.dataset.id;});
+      saveState(); renderProjectTasks();
+    }
+    if(t.dataset && t.dataset.taskaddbtn){ addProjectTask(t.dataset.taskaddbtn); }
+    if(t.dataset && t.dataset.paction === "toggle"){ togglePeriodic(t.dataset.group, t.dataset.id); }
+    if(t.dataset && t.dataset.paction === "delete"){ deletePeriodicDef(t.dataset.group, t.dataset.id); }
   });
+  document.addEventListener("keydown", function(ev){
+    if(ev.key !== "Enter") return;
+    var t = ev.target;
+    if(t.dataset && t.dataset.taskadd){ addProjectTask(t.dataset.taskadd); }
+  });
+  function addProjectTask(key){
+    var input = document.querySelector('[data-taskadd="'+key+'"]');
+    var val = input.value.trim();
+    if(!val) return;
+    state.projectTasks[key].push({id:"t"+Date.now()+Math.random().toString(16).slice(2), text:val, done:false});
+    input.value = "";
+    saveState(); renderProjectTasks();
+  }
 
   function wireAdd(inputId, btnId, listKey){
     function add(){
@@ -725,9 +908,109 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
   }
   wireAdd("work-add-input","work-add-btn","workTodos");
   wireAdd("personal-add-input","personal-add-btn","personalTodos");
+  wireAdd("house-add-input","house-add-btn","houseTodos");
+  wireAdd("watch-add-input","watch-add-btn","watchList");
+
+  // ---------- PERIODIC LISTS (pills / weekly & monthly chores) ----------
+  function isoWeekKey(d){
+    var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    var dayNum = (date.getUTCDay()+6)%7;
+    date.setUTCDate(date.getUTCDate()-dayNum+3);
+    var firstThursday = new Date(Date.UTC(date.getUTCFullYear(),0,4));
+    var week = 1 + Math.round(((date - firstThursday)/86400000 - 3 + ((firstThursday.getUTCDay()+6)%7))/7);
+    return date.getUTCFullYear()+"-W"+pad(week);
+  }
+  function monthKey(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1); }
+
+  var PERIODIC = {
+    pills: {defsKey:"supplements", doneKey:"pillLog", period:function(){ return isoDate(new Date()); }},
+    choresWeekly: {defsKey:"choresWeekly", doneKey:"choresWeeklyDone", period:function(){ return isoWeekKey(new Date()); }},
+    choresMonthly: {defsKey:"choresMonthly", doneKey:"choresMonthlyDone", period:function(){ return monthKey(new Date()); }}
+  };
+
+  function togglePeriodic(group, id){
+    var cfg = PERIODIC[group];
+    var period = cfg.period();
+    var map = state[cfg.doneKey][period] || (state[cfg.doneKey][period] = {});
+    map[id] = !map[id];
+    saveState(); renderAllPeriodic();
+  }
+  function deletePeriodicDef(group, id){
+    var cfg = PERIODIC[group];
+    state[cfg.defsKey] = state[cfg.defsKey].filter(function(d){ return d.id!==id; });
+    saveState(); renderAllPeriodic();
+  }
+  function addPeriodicDef(group, text, extra){
+    var cfg = PERIODIC[group];
+    var item = {id:"p"+Date.now()+Math.random().toString(16).slice(2), text:text};
+    if(extra) for(var k in extra){ item[k] = extra[k]; }
+    state[cfg.defsKey].push(item);
+    saveState(); renderAllPeriodic();
+  }
+  function renderPeriodic(group, listElId, progressElId){
+    var cfg = PERIODIC[group];
+    var defs = state[cfg.defsKey];
+    var period = cfg.period();
+    var map = state[cfg.doneKey][period] || {};
+    var el = document.getElementById(listElId);
+    if(!defs.length){
+      el.innerHTML = '<div class="check-empty">Nothing set up yet — add one below.</div>';
+    } else {
+      el.innerHTML = defs.map(function(d){
+        var done = !!map[d.id];
+        var timeTag = d.time ? '<span class="pill-time">'+d.time+'</span>' : '';
+        return '<div class="check-row">'+
+          '<button class="check-box'+(done?" done":"")+'" data-paction="toggle" data-group="'+group+'" data-id="'+d.id+'"></button>'+
+          '<div class="check-text'+(done?" done":"")+'">'+d.text+'</div>'+
+          timeTag+
+          '<button class="check-del" data-paction="delete" data-group="'+group+'" data-id="'+d.id+'">✕</button>'+
+        '</div>';
+      }).join("");
+    }
+    if(progressElId){
+      var total = defs.length;
+      var doneCount = defs.filter(function(d){ return map[d.id]; }).length;
+      var pct = total ? Math.round((doneCount/total)*100) : 0;
+      document.getElementById(progressElId).innerHTML =
+        '<div class="progress-bar-track"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div>'+
+        '<div class="progress-label">'+doneCount+' / '+total+' complete this period · '+pct+'%</div>';
+    }
+  }
+  function renderAllPeriodic(){
+    renderPeriodic("pills","pill-checklist");
+    renderPeriodic("choresWeekly","chores-weekly-list","chores-weekly-progress");
+    renderPeriodic("choresMonthly","chores-monthly-list","chores-monthly-progress");
+    var pdefs = state.supplements, pperiod = PERIODIC.pills.period();
+    var pmap = state.pillLog[pperiod] || {};
+    var ptaken = pdefs.filter(function(d){ return pmap[d.id]; }).length;
+    document.getElementById("pill-progress-chip").textContent = pdefs.length ? (ptaken+" / "+pdefs.length+" today") : "";
+  }
+  renderAllPeriodic();
+
+  document.getElementById("pill-add-btn").addEventListener("click", function(){
+    var nameInput = document.getElementById("pill-name-input");
+    var timeInput = document.getElementById("pill-time-input");
+    var name = nameInput.value.trim();
+    if(!name) return;
+    addPeriodicDef("pills", name, {time: timeInput.value.trim()});
+    nameInput.value = ""; timeInput.value = "";
+  });
+  function wirePeriodicAdd(inputId, btnId, group){
+    function add(){
+      var input = document.getElementById(inputId);
+      var val = input.value.trim();
+      if(!val) return;
+      addPeriodicDef(group, val);
+      input.value = "";
+    }
+    document.getElementById(btnId).addEventListener("click", add);
+    document.getElementById(inputId).addEventListener("keydown", function(e){ if(e.key==="Enter") add(); });
+  }
+  wirePeriodicAdd("chores-weekly-input","chores-weekly-btn","choresWeekly");
+  wirePeriodicAdd("chores-monthly-input","chores-monthly-btn","choresMonthly");
 
   // ---------- HEALTH ----------
-  var GOALS = {steps:10000, sleep:8, active:30};
+  var GOALS = {steps:10000, sleep:8, move:500, exercise:30, stand:12};
   document.getElementById("in-date").value = isoDate(new Date());
 
   document.getElementById("log-save-btn").addEventListener("click", function(){
@@ -735,7 +1018,11 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     state.healthLogs[d] = {
       steps: Number(document.getElementById("in-steps").value)||0,
       sleep: Number(document.getElementById("in-sleep").value)||0,
-      active: Number(document.getElementById("in-active").value)||0
+      sleepScore: Number(document.getElementById("in-sleepscore").value)||0,
+      restingHR: Number(document.getElementById("in-restinghr").value)||0,
+      move: Number(document.getElementById("in-move").value)||0,
+      exercise: Number(document.getElementById("in-exercise").value)||0,
+      stand: Number(document.getElementById("in-stand").value)||0
     };
     saveState();
     renderHealth();
@@ -760,12 +1047,24 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
 
   function renderHealth(){
     var today = isoDate(new Date());
-    var todayLog = state.healthLogs[today] || {steps:0, sleep:0, active:0};
+    var todayLog = state.healthLogs[today] || {steps:0, sleep:0, sleepScore:0, restingHR:0, move:0, exercise:0, stand:0};
+
+    document.getElementById("health-quick-stats").innerHTML = [
+      {label:"Steps Today", value:todayLog.steps.toLocaleString(), accent:"var(--cobalt)"},
+      {label:"Sleep (hrs)", value:todayLog.sleep, accent:"var(--cobalt-pale)"},
+      {label:"Sleep Score", value:todayLog.sleepScore || "—", accent:"var(--neon)"},
+      {label:"Resting HR", value:(todayLog.restingHR ? todayLog.restingHR+" bpm" : "—"), accent:"var(--tan)"}
+    ].map(function(t){
+      return '<div class="stat-tile" style="--tile-accent:'+t.accent+'">'+
+        '<div class="stat-label">'+t.label+'</div>'+
+        '<div class="stat-value">'+t.value+'</div>'+
+      '</div>';
+    }).join("");
 
     document.getElementById("health-rings").innerHTML =
-      ring("r1","Steps", todayLog.steps, GOALS.steps, "var(--cobalt)") +
-      ring("r2","Sleep (hrs)", todayLog.sleep, GOALS.sleep, "var(--neon)") +
-      ring("r3","Aerobic (min)", todayLog.active, GOALS.active, "var(--tan)");
+      ring("r1","Move (kcal)", todayLog.move, GOALS.move, "var(--cobalt)") +
+      ring("r2","Exercise (min)", todayLog.exercise, GOALS.exercise, "var(--neon)") +
+      ring("r3","Stand (hrs)", todayLog.stand, GOALS.stand, "var(--tan)");
 
     // last 7 days bars
     var days = [];
@@ -821,8 +1120,8 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     var tiles = [
       {label:"Steps Today", value:(todayLog? todayLog.steps.toLocaleString() : "—"), accent:"var(--cobalt)"},
       {label:"Sleep Last Night", value:(todayLog? todayLog.sleep+"h" : "—"), accent:"var(--neon)"},
-      {label:"Active Client Projects", value: WORK_ACTIVE.length, accent:"var(--cobalt-pale)"},
-      {label:"Leads In Motion", value: WORK_LEADS.length, accent:"var(--tan)"},
+      {label:"Projects In Progress", value: WORK_ACTIVE.length, accent:"var(--cobalt-pale)"},
+      {label:"Leads", value: WORK_LEADS.length, accent:"var(--tan)"},
       {label:"Events — Next 2 Weeks", value: upcoming7, accent:"var(--cream)"}
     ];
     document.getElementById("overview-stats").innerHTML = tiles.map(function(t){
