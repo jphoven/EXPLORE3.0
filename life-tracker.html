@@ -838,7 +838,10 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     state.choresMonthlyDone = state.choresMonthlyDone || {};
     state.projectTasks = state.projectTasks || {};
     state.foodLog = state.foodLog || {};
-    state.workouts = state.workouts || [];
+    state.workouts = state.workouts || [
+      {id:"seed-w-ride-0709", type:"Ride", date:"2026-07-09", title:"Afternoon Ride", duration:27.3, distance:0, avgHR:133},
+      {id:"seed-w-run-0712", type:"Run", date:"2026-07-12", title:"Lunch Run", duration:23.6, distance:2.52, avgHR:0}
+    ];
     return state;
   }
   function showToast(msg){
@@ -1613,7 +1616,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
 
     document.getElementById("workout-stats").innerHTML = [
       {label:"Workouts This Week", value:thisWeek.length, accent:"var(--cobalt)"},
-      {label:"Minutes This Week", value:weekDuration, accent:"var(--neon)"},
+      {label:"Minutes This Week", value:Math.round(weekDuration*10)/10, accent:"var(--neon)"},
       {label:"Miles This Week", value:Math.round(weekDistance*10)/10, accent:"var(--tan)"}
     ].map(function(t){
       return '<div class="stat-tile" style="--tile-accent:'+t.accent+'">'+
