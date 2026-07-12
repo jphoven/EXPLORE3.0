@@ -330,6 +330,9 @@ button{font-family:inherit;}
 .food-row .thumb{width:44px;height:44px;border-radius:9px;object-fit:cover;flex:0 0 auto;border:1px solid var(--line);}
 .food-row .name{flex:1;font-size:13.5px;font-weight:700;}
 .food-row .macros{font-size:11.5px;color:var(--cream-dim);}
+.meal-items{margin-top:8px;display:flex;flex-direction:column;gap:4px;}
+.meal-item-row{font-size:12px;color:var(--cream-dim);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.meal-item-row span{color:var(--cream-dim);}
 
 .photo-btn{
   background:var(--ink);border:1px solid var(--line);color:var(--cream);border-radius:10px;
@@ -514,6 +517,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
 
     <!-- WORK -->
     <section class="panel" id="panel-work">
+      <div class="progress-wrap" id="work-top-progress"></div>
       <div class="section-block">
         <h2 class="section-title">Projects In Progress <span class="chip-count" id="work-active-count"></span></h2>
         <p class="section-sub">Notion → Current Projects, where Current Project Status = "In progress"</p>
@@ -557,6 +561,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
 
     <!-- HEALTH -->
     <section class="panel" id="panel-health">
+      <div class="progress-wrap" id="health-top-progress"></div>
       <div class="callout">
         <span class="ic">⚡</span>
         <span><b>Apple Health &amp; Apple Watch have no public API</b> — there's no cloud connection this tool can pull from automatically. Log today's numbers below, or set up the Shortcuts automation that pushes entries straight into your <a href="https://app.notion.com/p/06238635732347d6a490b825e14e801f" target="_blank" rel="noopener" style="color:var(--neon);font-weight:700;">Notion Health Log ↗</a> — once entries start landing there, ask me to pull the latest in and this panel updates from real data.</span>
@@ -605,10 +610,27 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
 
       <div class="section-block">
         <h2 class="section-title">Meals &amp; Food</h2>
-        <p class="section-sub">Type a common food and macros fill in from a small built-in list, or look up a barcode/SKU — either way you can adjust the numbers before adding.</p>
+        <p class="section-sub">Build a meal by adding each food to it one at a time — macros fill in from a small built-in list or a barcode/SKU lookup, and you can adjust before adding. One photo per meal.</p>
 
         <div class="food-form">
           <div class="food-form-row">
+            <div class="field" style="flex:1;min-width:160px;">
+              <label for="meal-name-input">Meal name</label>
+              <input type="text" id="meal-name-input" list="meal-options" placeholder="Breakfast, Lunch, Dinner, Snack…" style="width:100%;">
+              <datalist id="meal-options">
+                <option value="Breakfast"><option value="Lunch"><option value="Dinner"><option value="Snack">
+              </datalist>
+            </div>
+            <div class="field">
+              <label for="food-photo-input">Photo</label>
+              <input type="file" id="food-photo-input" accept="image/*" capture="environment" style="display:none;">
+              <div class="photo-preview" id="food-photo-preview">
+                <button type="button" class="photo-btn" id="food-photo-btn">📷 Add Photo</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="food-form-row" style="border-top:1px solid var(--line);padding-top:14px;">
             <div class="field" style="flex:1;min-width:180px;">
               <label for="food-name-input">Food name</label>
               <input type="text" id="food-name-input" list="food-options" placeholder="e.g. banana" style="width:100%;">
@@ -630,14 +652,14 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
             <div class="field"><label for="food-carbs">Carbs (g)</label><input type="number" id="food-carbs" min="0" placeholder="0"></div>
             <div class="field"><label for="food-fat">Fat (g)</label><input type="number" id="food-fat" min="0" placeholder="0"></div>
             <div class="field"><label for="food-servings">Servings</label><input type="number" id="food-servings" min="0" step="0.5" value="1"></div>
-            <div class="field">
-              <label for="food-photo-input">Photo</label>
-              <input type="file" id="food-photo-input" accept="image/*" capture="environment" style="display:none;">
-              <div class="photo-preview" id="food-photo-preview">
-                <button type="button" class="photo-btn" id="food-photo-btn">📷 Add Photo</button>
-              </div>
-            </div>
-            <button id="food-add-btn">Add to Today</button>
+            <button id="food-item-add-btn">+ Add Food to Meal</button>
+          </div>
+
+          <p class="section-sub" style="margin:14px 0 6px;">Foods in this meal so far</p>
+          <div id="staged-meal-items"></div>
+
+          <div class="add-row" style="justify-content:flex-end;">
+            <button id="meal-save-btn">Save Meal</button>
           </div>
         </div>
 
@@ -659,6 +681,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
 
     <!-- PERSONAL -->
     <section class="panel" id="panel-personal">
+      <div class="progress-wrap" id="personal-top-progress"></div>
       <div class="section-block">
         <h2 class="section-title">Upcoming</h2>
         <p class="section-sub">Live snapshot from Google Calendar (Personal)</p>
@@ -792,6 +815,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     }catch(e){
       showToast("Storage is full (likely from meal photos) — that last change wasn't saved. Try deleting an older photo entry, then try again.");
     }
+    renderTopBars();
   }
   var state = loadState();
 
@@ -864,7 +888,11 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     {date:"2026-07-19", time:"11:00 AM", title:"Girlies Who Read — Book Club: Yesteryear", loc:"Encinitas, CA"},
     {date:"2026-07-30", time:"5:00 PM", title:"Knit Night", loc:"Recurring"}
   ];
-  var BIRTHDAYS = [{name:"Jamie Hoven's Birthday", month:10, day:10}];
+  var BIRTHDAYS = [
+    {name:"Your Birthday", month:4, day:12, tag:"BIRTHDAY"},
+    {name:"Jamie Hoven's Birthday", month:10, day:10, tag:"BIRTHDAY"},
+    {name:"Julia & Sebi Anniversary", month:10, day:19, tag:"ANNIVERSARY"}
+  ];
   var HOLIDAYS = [{name:"Labor Day", date:"2026-09-07"}];
 
   // Small built-in nutrition lookup so common foods auto-fill without any network call.
@@ -1006,7 +1034,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
   }
   function renderCountdowns(elId){
     var el = document.getElementById(elId);
-    var items = BIRTHDAYS.map(function(b){ return {name:b.name, days:daysUntilAnnual(b.month,b.day), tag:"BIRTHDAY", accent:"var(--tan)"}; })
+    var items = BIRTHDAYS.map(function(b){ return {name:b.name, days:daysUntilAnnual(b.month,b.day), tag:b.tag||"BIRTHDAY", accent:"var(--tan)"}; })
       .concat(HOLIDAYS.map(function(h){ return {name:h.name, days:daysUntilDate(h.date), tag:"HOLIDAY", accent:"var(--cobalt-pale)"}; }));
     el.innerHTML = items.map(function(it){
       return '<div class="card" style="--card-accent:'+it.accent+'">'+
@@ -1363,10 +1391,11 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
   // Photos are resized to a small JPEG thumbnail before storing — this all lives in
   // localStorage, and raw phone photos would blow past its size limit within days.
   var THUMB_MAX_DIM = 220, THUMB_QUALITY = 0.65;
-  var stagedPhoto = null;
+  // A meal is built up one food at a time before being saved as a single log entry.
+  var stagedMeal = {photo:null, items:[]};
 
   function resetPhotoPicker(){
-    stagedPhoto = null;
+    stagedMeal.photo = null;
     document.getElementById("food-photo-input").value = "";
     document.getElementById("food-photo-preview").innerHTML = '<button type="button" class="photo-btn" id="food-photo-btn">📷 Add Photo</button>';
   }
@@ -1387,9 +1416,9 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
         var canvas = document.createElement("canvas");
         canvas.width = cw; canvas.height = ch;
         canvas.getContext("2d").drawImage(img, 0, 0, cw, ch);
-        stagedPhoto = canvas.toDataURL("image/jpeg", THUMB_QUALITY);
+        stagedMeal.photo = canvas.toDataURL("image/jpeg", THUMB_QUALITY);
         document.getElementById("food-photo-preview").innerHTML =
-          '<img src="'+stagedPhoto+'" alt=""><button type="button" class="check-del" id="food-photo-clear">✕</button>';
+          '<img src="'+stagedMeal.photo+'" alt=""><button type="button" class="check-del" id="food-photo-clear">✕</button>';
       };
       img.src = ev.target.result;
     };
@@ -1400,31 +1429,67 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     if(ev.target.id === "food-photo-clear"){ resetPhotoPicker(); }
   });
 
-  document.getElementById("food-add-btn").addEventListener("click", function(){
+  function renderStagedItems(){
+    var el = document.getElementById("staged-meal-items");
+    if(!stagedMeal.items.length){
+      el.innerHTML = '<div class="check-empty">No foods added to this meal yet.</div>';
+      return;
+    }
+    el.innerHTML = stagedMeal.items.map(function(it, idx){
+      return '<div class="food-row">'+
+        '<div><div class="name">'+it.name+'</div>'+
+        '<div class="macros">'+Math.round(it.cals)+' kcal · '+Math.round(it.protein*10)/10+'g P · '+Math.round(it.carbs*10)/10+'g C · '+Math.round(it.fat*10)/10+'g F</div></div>'+
+        '<button class="check-del" data-stagedremove="'+idx+'">✕</button>'+
+      '</div>';
+    }).join("");
+  }
+  renderStagedItems();
+
+  document.addEventListener("click", function(ev){
+    if(ev.target.dataset && ev.target.dataset.stagedremove !== undefined){
+      stagedMeal.items.splice(Number(ev.target.dataset.stagedremove), 1);
+      renderStagedItems();
+    }
+  });
+
+  document.getElementById("food-item-add-btn").addEventListener("click", function(){
     var name = document.getElementById("food-name-input").value.trim() || "Food";
     var servings = Number(document.getElementById("food-servings").value) || 1;
     var cals = (Number(document.getElementById("food-cals").value)||0) * servings;
     var protein = (Number(document.getElementById("food-protein").value)||0) * servings;
     var carbs = (Number(document.getElementById("food-carbs").value)||0) * servings;
     var fat = (Number(document.getElementById("food-fat").value)||0) * servings;
-    var today = isoDate(new Date());
-    state.foodLog[today] = state.foodLog[today] || [];
-    state.foodLog[today].push({id:"f"+Date.now()+Math.random().toString(16).slice(2), name:name, cals:cals, protein:protein, carbs:carbs, fat:fat, photo:stagedPhoto});
-    saveState();
+    stagedMeal.items.push({name:name, cals:cals, protein:protein, carbs:carbs, fat:fat});
     ["food-name-input","food-barcode-input","food-cals","food-protein","food-carbs","food-fat"].forEach(function(id){ document.getElementById(id).value = ""; });
     document.getElementById("food-servings").value = 1;
+    setFoodStatus("");
+    renderStagedItems();
+  });
+
+  document.getElementById("meal-save-btn").addEventListener("click", function(){
+    if(!stagedMeal.items.length){ setFoodStatus("Add at least one food to this meal first.", "warn"); return; }
+    var mealName = document.getElementById("meal-name-input").value.trim() || "Meal";
+    var today = isoDate(new Date());
+    state.foodLog[today] = state.foodLog[today] || [];
+    state.foodLog[today].push({id:"m"+Date.now()+Math.random().toString(16).slice(2), mealName:mealName, photo:stagedMeal.photo, items:stagedMeal.items});
+    saveState();
+    stagedMeal = {photo:null, items:[]};
+    document.getElementById("meal-name-input").value = "";
     resetPhotoPicker();
+    renderStagedItems();
     setFoodStatus("");
     renderFoodLog();
   });
 
   function renderFoodLog(){
     var today = isoDate(new Date());
-    var items = state.foodLog[today] || [];
-    var totals = items.reduce(function(acc, it){
-      acc.cals += it.cals; acc.protein += it.protein; acc.carbs += it.carbs; acc.fat += it.fat;
-      return acc;
-    }, {cals:0, protein:0, carbs:0, fat:0});
+    var meals = state.foodLog[today] || [];
+    var totals = {cals:0, protein:0, carbs:0, fat:0};
+    meals.forEach(function(meal){
+      meal.items.forEach(function(it){
+        totals.cals += it.cals; totals.protein += it.protein; totals.carbs += it.carbs; totals.fat += it.fat;
+      });
+    });
 
     document.getElementById("food-totals").innerHTML = [
       {label:"Calories Today", value:Math.round(totals.cals), accent:"var(--cobalt)"},
@@ -1439,15 +1504,23 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     }).join("");
 
     var listEl = document.getElementById("food-log-list");
-    if(!items.length){
-      listEl.innerHTML = '<div class="check-empty">Nothing logged today yet — add something above.</div>';
+    if(!meals.length){
+      listEl.innerHTML = '<div class="check-empty">Nothing logged today yet — build a meal above.</div>';
     } else {
-      listEl.innerHTML = items.map(function(it){
-        var thumb = it.photo ? '<img class="thumb" src="'+it.photo+'" alt="">' : "";
-        return '<div class="food-row">'+ thumb +
-          '<div><div class="name">'+it.name+'</div>'+
-          '<div class="macros">'+Math.round(it.cals)+' kcal · '+Math.round(it.protein*10)/10+'g P · '+Math.round(it.carbs*10)/10+'g C · '+Math.round(it.fat*10)/10+'g F</div></div>'+
-          '<button class="check-del" data-action="deletefood" data-id="'+it.id+'">✕</button>'+
+      listEl.innerHTML = meals.map(function(meal){
+        var mealTotal = meal.items.reduce(function(acc,it){
+          acc.cals+=it.cals; acc.protein+=it.protein; acc.carbs+=it.carbs; acc.fat+=it.fat; return acc;
+        }, {cals:0,protein:0,carbs:0,fat:0});
+        var thumb = meal.photo ? '<img class="thumb" src="'+meal.photo+'" alt="">' : "";
+        var itemsHtml = meal.items.map(function(it){
+          return '<div class="meal-item-row">'+it.name+'<span>'+Math.round(it.cals)+' kcal · '+Math.round(it.protein*10)/10+'g P · '+Math.round(it.carbs*10)/10+'g C · '+Math.round(it.fat*10)/10+'g F</span></div>';
+        }).join("");
+        return '<div class="food-row" style="align-items:flex-start;">'+ thumb +
+          '<div style="flex:1;min-width:0;">'+
+            '<div class="name">'+meal.mealName+' <span class="macros" style="font-weight:400;">— '+Math.round(mealTotal.cals)+' kcal total</span></div>'+
+            '<div class="meal-items">'+itemsHtml+'</div>'+
+          '</div>'+
+          '<button class="check-del" data-action="deletefood" data-id="'+meal.id+'">✕</button>'+
         '</div>';
       }).join("");
     }
@@ -1514,8 +1587,10 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
       html += '<div class="food-hint" style="margin-top:14px;">Health logged: '+(log.steps||0).toLocaleString()+' steps · '+(log.sleep||0)+'h sleep · '+(log.move||0)+' kcal move · '+(log.exercise||0)+' min exercise · '+(log.stand||0)+'h stand</div>';
     }
     if(foods.length){
-      var totalCals = foods.reduce(function(a,f){ return a+f.cals; }, 0);
-      html += '<div class="food-hint">Food logged: '+Math.round(totalCals)+' kcal across '+foods.length+' item'+(foods.length===1?"":"s")+'</div>';
+      var totalCals = foods.reduce(function(a,meal){
+        return a + meal.items.reduce(function(b,it){ return b+it.cals; }, 0);
+      }, 0);
+      html += '<div class="food-hint">Food logged: '+Math.round(totalCals)+' kcal across '+foods.length+' meal'+(foods.length===1?"":"s")+'</div>';
     }
     document.getElementById("cal-detail").innerHTML = html;
   }
@@ -1562,6 +1637,49 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     }
   });
   renderCalendar();
+
+  // ---------- TOP-OF-TAB PROGRESS BARS ----------
+  function progressBarHtml(pct, label){
+    return '<div class="progress-bar-track"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div>'+
+      '<div class="progress-label">'+label+'</div>';
+  }
+
+  function renderTopBars(){
+    // WORK — open to-dos + every project's task list, combined
+    var workTotal = state.workTodos.length;
+    var workDone = state.workTodos.filter(function(i){ return i.done; }).length;
+    PROJECT_TASK_KEYS.forEach(function(k){
+      var items = state.projectTasks[k] || [];
+      workTotal += items.length;
+      workDone += items.filter(function(i){ return i.done; }).length;
+    });
+    document.getElementById("work-top-progress").innerHTML = progressBarHtml(
+      workTotal ? Math.round(workDone/workTotal*100) : 0,
+      workTotal ? (workDone+" / "+workTotal+" work items done · "+Math.round(workDone/workTotal*100)+"%") : "Nothing tracked yet — add a to-do or task below."
+    );
+
+    // HEALTH — today's Move/Exercise/Stand/Steps goal completion
+    var todayLog = state.healthLogs[isoDate(new Date())];
+    var healthPct = healthGoalPct(todayLog);
+    document.getElementById("health-top-progress").innerHTML = progressBarHtml(
+      healthPct || 0,
+      healthPct != null ? ("Today's activity goals: "+healthPct+"%") : "Nothing logged yet today — log steps/move/exercise/stand below."
+    );
+
+    // PERSONAL — personal to-dos + house to-dos + this period's chores, combined
+    var wPeriod = PERIODIC.choresWeekly.period(), mPeriod = PERIODIC.choresMonthly.period();
+    var wDone = state.choresWeeklyDone[wPeriod] || {}, mDone = state.choresMonthlyDone[mPeriod] || {};
+    var personalTotal = state.personalTodos.length + state.houseTodos.length + state.choresWeekly.length + state.choresMonthly.length;
+    var personalDone = state.personalTodos.filter(function(i){ return i.done; }).length +
+      state.houseTodos.filter(function(i){ return i.done; }).length +
+      state.choresWeekly.filter(function(c){ return wDone[c.id]; }).length +
+      state.choresMonthly.filter(function(c){ return mDone[c.id]; }).length;
+    document.getElementById("personal-top-progress").innerHTML = progressBarHtml(
+      personalTotal ? Math.round(personalDone/personalTotal*100) : 0,
+      personalTotal ? (personalDone+" / "+personalTotal+" personal items done · "+Math.round(personalDone/personalTotal*100)+"%") : "Nothing tracked yet — add a to-do or chore below."
+    );
+  }
+  renderTopBars();
 
   // ---------- OVERVIEW STATS ----------
   (function(){
