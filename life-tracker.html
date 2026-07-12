@@ -311,6 +311,23 @@ button{font-family:inherit;}
 .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--cobalt),var(--neon));border-radius:6px;transition:width .25s ease;}
 .progress-label{font-size:11px;color:var(--cream-dim);margin-top:7px;letter-spacing:0.03em;}
 
+/* food log */
+.food-form{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px;margin-bottom:20px;
+}
+.food-form-row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
+.food-form-row:last-child{margin-bottom:0;}
+.food-hint{font-size:11px;color:var(--cream-dim);margin-top:6px;}
+.food-hint.warn{color:var(--tan);}
+.food-hint.ok{color:var(--neon-dim);}
+.food-row{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:var(--ink-2);
+  border:1px solid var(--line);margin-bottom:6px;
+}
+.food-row .name{flex:1;font-size:13.5px;font-weight:700;}
+.food-row .macros{font-size:11.5px;color:var(--cream-dim);}
+
 /* project task groups */
 .task-group{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
 .task-group h3{font-family:var(--font-display);font-weight:700;font-size:15px;margin:0 0 12px;}
@@ -536,6 +553,42 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
         </div>
       </div>
 
+      <div class="section-block">
+        <h2 class="section-title">Meals &amp; Food</h2>
+        <p class="section-sub">Type a common food and macros fill in from a small built-in list, or look up a barcode/SKU — either way you can adjust the numbers before adding.</p>
+
+        <div class="food-form">
+          <div class="food-form-row">
+            <div class="field" style="flex:1;min-width:180px;">
+              <label for="food-name-input">Food name</label>
+              <input type="text" id="food-name-input" list="food-options" placeholder="e.g. banana" style="width:100%;">
+              <datalist id="food-options"></datalist>
+            </div>
+            <button id="food-lookup-name-btn">Fill Macros</button>
+          </div>
+          <div class="food-form-row">
+            <div class="field" style="flex:1;min-width:180px;">
+              <label for="food-barcode-input">Barcode / SKU</label>
+              <input type="text" id="food-barcode-input" placeholder="UPC / EAN number" style="width:100%;">
+            </div>
+            <button id="food-lookup-barcode-btn">Look Up</button>
+          </div>
+          <div id="food-lookup-status" class="food-hint"></div>
+          <div class="food-form-row">
+            <div class="field"><label for="food-cals">Calories</label><input type="number" id="food-cals" min="0" placeholder="0"></div>
+            <div class="field"><label for="food-protein">Protein (g)</label><input type="number" id="food-protein" min="0" placeholder="0"></div>
+            <div class="field"><label for="food-carbs">Carbs (g)</label><input type="number" id="food-carbs" min="0" placeholder="0"></div>
+            <div class="field"><label for="food-fat">Fat (g)</label><input type="number" id="food-fat" min="0" placeholder="0"></div>
+            <div class="field"><label for="food-servings">Servings</label><input type="number" id="food-servings" min="0" step="0.5" value="1"></div>
+            <button id="food-add-btn">Add to Today</button>
+          </div>
+        </div>
+
+        <div class="stat-row" id="food-totals"></div>
+
+        <div id="food-log-list"></div>
+      </div>
+
       <h2 class="section-title">Upcoming Movement</h2>
       <p class="section-sub">From your calendar</p>
       <div class="movement-card">
@@ -642,6 +695,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     state.choresWeeklyDone = state.choresWeeklyDone || {};
     state.choresMonthlyDone = state.choresMonthlyDone || {};
     state.projectTasks = state.projectTasks || {};
+    state.foodLog = state.foodLog || {};
     return state;
   }
   function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
@@ -717,6 +771,42 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
   ];
   var BIRTHDAYS = [{name:"Jamie Hoven's Birthday", month:10, day:10}];
   var HOLIDAYS = [{name:"Labor Day", date:"2026-09-07"}];
+
+  // Small built-in nutrition lookup so common foods auto-fill without any network call.
+  // Values are per typical single serving (see servingLabel).
+  var FOOD_DB = [
+    {name:"Banana", servingLabel:"1 medium", cals:105, protein:1.3, carbs:27, fat:0.4},
+    {name:"Apple", servingLabel:"1 medium", cals:95, protein:0.5, carbs:25, fat:0.3},
+    {name:"Egg", servingLabel:"1 large", cals:72, protein:6.3, carbs:0.4, fat:4.8},
+    {name:"Chicken Breast", servingLabel:"100g cooked", cals:165, protein:31, carbs:0, fat:3.6},
+    {name:"White Rice", servingLabel:"1 cup cooked", cals:205, protein:4.3, carbs:45, fat:0.4},
+    {name:"Brown Rice", servingLabel:"1 cup cooked", cals:216, protein:5, carbs:45, fat:1.8},
+    {name:"Oatmeal", servingLabel:"1 cup cooked", cals:166, protein:5.9, carbs:28, fat:3.6},
+    {name:"Almonds", servingLabel:"1 oz (23 nuts)", cals:164, protein:6, carbs:6, fat:14},
+    {name:"Peanut Butter", servingLabel:"2 tbsp", cals:188, protein:8, carbs:6, fat:16},
+    {name:"Whole Milk", servingLabel:"1 cup", cals:149, protein:8, carbs:12, fat:8},
+    {name:"Greek Yogurt", servingLabel:"1 cup plain", cals:150, protein:25, carbs:9, fat:4},
+    {name:"Avocado", servingLabel:"1 medium", cals:240, protein:3, carbs:12, fat:22},
+    {name:"Salmon", servingLabel:"100g cooked", cals:206, protein:22, carbs:0, fat:13},
+    {name:"Broccoli", servingLabel:"1 cup cooked", cals:55, protein:3.7, carbs:11, fat:0.6},
+    {name:"Sweet Potato", servingLabel:"1 medium baked", cals:112, protein:2, carbs:26, fat:0.1},
+    {name:"Whole Wheat Bread", servingLabel:"1 slice", cals:81, protein:4, carbs:14, fat:1.1},
+    {name:"Turkey Breast", servingLabel:"100g cooked", cals:135, protein:30, carbs:0, fat:1},
+    {name:"Tuna", servingLabel:"100g canned in water", cals:116, protein:26, carbs:0, fat:0.8},
+    {name:"Black Beans", servingLabel:"1 cup cooked", cals:227, protein:15, carbs:41, fat:0.9},
+    {name:"Quinoa", servingLabel:"1 cup cooked", cals:222, protein:8, carbs:39, fat:3.6},
+    {name:"Olive Oil", servingLabel:"1 tbsp", cals:119, protein:0, carbs:0, fat:14},
+    {name:"Cheddar Cheese", servingLabel:"1 oz", cals:113, protein:7, carbs:0.4, fat:9.3},
+    {name:"Protein Powder", servingLabel:"1 scoop", cals:120, protein:24, carbs:3, fat:1.5},
+    {name:"Orange", servingLabel:"1 medium", cals:62, protein:1.2, carbs:15, fat:0.2},
+    {name:"Strawberries", servingLabel:"1 cup", cals:49, protein:1, carbs:12, fat:0.5},
+    {name:"Spinach", servingLabel:"1 cup raw", cals:7, protein:0.9, carbs:1.1, fat:0.1},
+    {name:"Pasta", servingLabel:"1 cup cooked", cals:221, protein:8, carbs:43, fat:1.3},
+    {name:"Ground Beef 90/10", servingLabel:"100g cooked", cals:176, protein:20, carbs:0, fat:10},
+    {name:"Bacon", servingLabel:"2 slices", cals:86, protein:6, carbs:0.2, fat:6.6},
+    {name:"Bagel", servingLabel:"1 plain", cals:245, protein:10, carbs:48, fat:1.5},
+    {name:"Hummus", servingLabel:"2 tbsp", cals:70, protein:2, carbs:6, fat:4.5}
+  ];
 
   var CAT_COLOR = {work:"var(--cobalt-pale)", health:"var(--neon)", personal:"var(--tan)"};
 
@@ -1108,6 +1198,132 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
       '<div><b>'+completion+'%</b><span>Logging Rate</span></div>';
   }
   renderHealth();
+
+  // ---------- FOOD LOG ----------
+  document.getElementById("food-options").innerHTML = FOOD_DB.map(function(f){
+    return '<option value="'+f.name+'">';
+  }).join("");
+
+  function findLocalFood(name){
+    var n = name.trim().toLowerCase();
+    if(!n) return null;
+    return FOOD_DB.find(function(f){ return f.name.toLowerCase() === n; }) ||
+      FOOD_DB.find(function(f){ return f.name.toLowerCase().indexOf(n) !== -1; }) || null;
+  }
+
+  function setFoodStatus(msg, cls){
+    var el = document.getElementById("food-lookup-status");
+    el.textContent = msg;
+    el.className = "food-hint" + (cls ? " "+cls : "");
+  }
+
+  function fillMacroFields(f){
+    document.getElementById("food-cals").value = Math.round(f.cals);
+    document.getElementById("food-protein").value = Math.round(f.protein*10)/10;
+    document.getElementById("food-carbs").value = Math.round(f.carbs*10)/10;
+    document.getElementById("food-fat").value = Math.round(f.fat*10)/10;
+    if(!document.getElementById("food-name-input").value.trim() && f.name){
+      document.getElementById("food-name-input").value = f.name;
+    }
+  }
+
+  document.getElementById("food-lookup-name-btn").addEventListener("click", function(){
+    var typed = document.getElementById("food-name-input").value;
+    var f = findLocalFood(typed);
+    if(f){
+      fillMacroFields(f);
+      setFoodStatus("Found \""+f.name+"\" ("+f.servingLabel+") in the built-in list — adjust servings below if needed.", "ok");
+    } else {
+      setFoodStatus("Not in the built-in list ("+FOOD_DB.length+" common foods) — enter macros manually below, or try a barcode.", "warn");
+    }
+  });
+
+  document.getElementById("food-lookup-barcode-btn").addEventListener("click", function(){
+    var code = document.getElementById("food-barcode-input").value.trim();
+    if(!code){ setFoodStatus("Enter a barcode number first.", "warn"); return; }
+    setFoodStatus("Looking up "+code+"…");
+    fetch("https://world.openfoodfacts.org/api/v2/product/"+encodeURIComponent(code)+".json")
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data && data.product && data.status === 1){
+          var p = data.product;
+          var n = p.nutriments || {};
+          var per100 = {
+            cals: n["energy-kcal_100g"] || 0,
+            protein: n["proteins_100g"] || 0,
+            carbs: n["carbohydrates_100g"] || 0,
+            fat: n["fat_100g"] || 0
+          };
+          fillMacroFields({name:p.product_name || ("Barcode "+code), servingLabel:"per 100g", cals:per100.cals, protein:per100.protein, carbs:per100.carbs, fat:per100.fat});
+          setFoodStatus("Found \""+(p.product_name||code)+"\" — values are per 100g, adjust servings to match what you actually ate.", "ok");
+        } else {
+          setFoodStatus("No product found for that barcode — enter macros manually below.", "warn");
+        }
+      })
+      .catch(function(){
+        setFoodStatus("Couldn't reach the barcode database from here — this live lookup only works when you open your saved life-tracker.html file directly (not this shared preview). Enter macros manually below for now.", "warn");
+      });
+  });
+
+  document.getElementById("food-add-btn").addEventListener("click", function(){
+    var name = document.getElementById("food-name-input").value.trim() || "Food";
+    var servings = Number(document.getElementById("food-servings").value) || 1;
+    var cals = (Number(document.getElementById("food-cals").value)||0) * servings;
+    var protein = (Number(document.getElementById("food-protein").value)||0) * servings;
+    var carbs = (Number(document.getElementById("food-carbs").value)||0) * servings;
+    var fat = (Number(document.getElementById("food-fat").value)||0) * servings;
+    var today = isoDate(new Date());
+    state.foodLog[today] = state.foodLog[today] || [];
+    state.foodLog[today].push({id:"f"+Date.now()+Math.random().toString(16).slice(2), name:name, cals:cals, protein:protein, carbs:carbs, fat:fat});
+    saveState();
+    ["food-name-input","food-barcode-input","food-cals","food-protein","food-carbs","food-fat"].forEach(function(id){ document.getElementById(id).value = ""; });
+    document.getElementById("food-servings").value = 1;
+    setFoodStatus("");
+    renderFoodLog();
+  });
+
+  function renderFoodLog(){
+    var today = isoDate(new Date());
+    var items = state.foodLog[today] || [];
+    var totals = items.reduce(function(acc, it){
+      acc.cals += it.cals; acc.protein += it.protein; acc.carbs += it.carbs; acc.fat += it.fat;
+      return acc;
+    }, {cals:0, protein:0, carbs:0, fat:0});
+
+    document.getElementById("food-totals").innerHTML = [
+      {label:"Calories Today", value:Math.round(totals.cals), accent:"var(--cobalt)"},
+      {label:"Protein (g)", value:Math.round(totals.protein*10)/10, accent:"var(--cobalt-pale)"},
+      {label:"Carbs (g)", value:Math.round(totals.carbs*10)/10, accent:"var(--neon)"},
+      {label:"Fat (g)", value:Math.round(totals.fat*10)/10, accent:"var(--tan)"}
+    ].map(function(t){
+      return '<div class="stat-tile" style="--tile-accent:'+t.accent+'">'+
+        '<div class="stat-label">'+t.label+'</div>'+
+        '<div class="stat-value">'+t.value+'</div>'+
+      '</div>';
+    }).join("");
+
+    var listEl = document.getElementById("food-log-list");
+    if(!items.length){
+      listEl.innerHTML = '<div class="check-empty">Nothing logged today yet — add something above.</div>';
+    } else {
+      listEl.innerHTML = items.map(function(it){
+        return '<div class="food-row">'+
+          '<div><div class="name">'+it.name+'</div>'+
+          '<div class="macros">'+Math.round(it.cals)+' kcal · '+Math.round(it.protein*10)/10+'g P · '+Math.round(it.carbs*10)/10+'g C · '+Math.round(it.fat*10)/10+'g F</div></div>'+
+          '<button class="check-del" data-action="deletefood" data-id="'+it.id+'">✕</button>'+
+        '</div>';
+      }).join("");
+    }
+  }
+  renderFoodLog();
+
+  document.addEventListener("click", function(ev){
+    if(ev.target.dataset && ev.target.dataset.action === "deletefood"){
+      var today = isoDate(new Date());
+      state.foodLog[today] = (state.foodLog[today]||[]).filter(function(i){ return i.id !== ev.target.dataset.id; });
+      saveState(); renderFoodLog();
+    }
+  });
 
   // ---------- OVERVIEW STATS ----------
   (function(){
