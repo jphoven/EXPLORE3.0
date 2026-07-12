@@ -481,7 +481,19 @@ button{font-family:inherit;}
   border-radius:12px;padding:10px 14px;flex:0 0 auto;
 }
 
-footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px solid var(--line);padding-top:16px;}
+footer.note{margin-top:24px;font-size:11px;color:var(--cream-dim);border-top:1px solid var(--line);padding-top:16px;}
+
+.backup-bar{
+  margin-top:50px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;
+  background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;
+}
+.backup-title{font-family:var(--font-display);font-weight:700;font-size:14px;margin-bottom:4px;}
+.backup-actions{display:flex;gap:10px;flex:0 0 auto;}
+.backup-actions #backup-btn{
+  background:var(--cobalt);color:var(--cream);border:none;border-radius:10px;padding:9px 16px;
+  font-weight:700;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;
+}
+.backup-actions #backup-btn:hover{background:var(--cobalt-pale);color:var(--ink);}
 </style>
 </head>
 <body>
@@ -817,6 +829,18 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
         <div class="cal-detail" id="cal-detail"></div>
       </div>
     </section>
+
+    <div class="backup-bar">
+      <div>
+        <div class="backup-title">Backup &amp; Restore</div>
+        <div class="food-hint" style="margin:0;">Everything you've typed into this tracker lives only in this browser. Export a backup file now and then so a new phone or a cleared browser can't lose it.</div>
+      </div>
+      <div class="backup-actions">
+        <input type="file" id="restore-input" accept="application/json" style="display:none;">
+        <button id="restore-btn" class="photo-btn">⬆ Import Backup</button>
+        <button id="backup-btn">⬇ Export Backup</button>
+      </div>
+    </div>
 
     <footer class="note">Bama Brooklyn Life Tracker — Work &amp; Personal data snapshotted from Notion and Google Calendar on Jul 11, 2026. Health is logged manually in this browser (localStorage) since Apple Health has no public API. Re-ask to refresh the Work/Personal snapshot anytime.</footer>
   </main>
@@ -1835,6 +1859,41 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     );
   }
   renderTopBars();
+
+  // ---------- BACKUP & RESTORE ----------
+  document.getElementById("backup-btn").addEventListener("click", function(){
+    var dataStr = localStorage.getItem(STORE_KEY) || "{}";
+    var blob = new Blob([dataStr], {type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "bama-brooklyn-backup-"+isoDate(new Date())+".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Backup downloaded — keep it somewhere safe (email it to yourself, save to Files/Drive, etc).");
+  });
+
+  document.getElementById("restore-btn").addEventListener("click", function(){
+    document.getElementById("restore-input").click();
+  });
+
+  document.getElementById("restore-input").addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var parsed;
+      try{ parsed = JSON.parse(ev.target.result); }
+      catch(err){ showToast("That file doesn't look like a valid backup — nothing was changed."); return; }
+      var ok = confirm("This will replace everything currently in this tracker with the contents of that backup file. This can't be undone. Continue?");
+      if(!ok){ e.target.value = ""; return; }
+      localStorage.setItem(STORE_KEY, JSON.stringify(parsed));
+      location.reload();
+    };
+    reader.readAsText(file);
+  });
 
   // ---------- OVERVIEW STATS ----------
   (function(){
