@@ -877,7 +877,27 @@ footer.note{margin-top:24px;font-size:11px;color:var(--cream-dim);border-top:1px
       {id:"seed-w-ride-0709", type:"Ride", date:"2026-07-09", title:"Afternoon Ride", duration:27.3, distance:0, avgHR:133},
       {id:"seed-w-run-0712", type:"Run", date:"2026-07-12", title:"Lunch Run", duration:23.6, distance:2.52, avgHR:0}
     ];
+    state._imported = state._imported || {};
+    runMigrations(state);
     return state;
+  }
+
+  // One-time data pulls from Notion/Calendar land here instead of the defaults above —
+  // this app now has real persisted user data, so a plain `|| {defaults}` would never
+  // run again once localStorage exists. Each migration runs once (flagged in
+  // state._imported) and only fills in dates/ids that aren't already present, so it can
+  // never clobber anything already logged or overwrite something the user deleted on purpose.
+  function runMigrations(state){
+    if(!state._imported.notionHealth20260712){
+      var pulled = {
+        "2026-07-11": {steps:9932, sleep:9, sleepScore:90, restingHR:64, move:543, exercise:38, stand:14},
+        "2026-07-12": {steps:11625, sleep:0, sleepScore:97, restingHR:54, move:548, exercise:60, stand:0}
+      };
+      Object.keys(pulled).forEach(function(date){
+        if(!state.healthLogs[date]){ state.healthLogs[date] = pulled[date]; }
+      });
+      state._imported.notionHealth20260712 = true;
+    }
   }
   function showToast(msg){
     var el = document.getElementById("toast");
@@ -1917,6 +1937,10 @@ footer.note{margin-top:24px;font-size:11px;color:var(--cream-dim);border-top:1px
       '</div>';
     }).join("");
   })();
+
+  // Persist once at the very end of setup so seed defaults / migrations survive even if
+  // the user closes the tab without interacting with anything.
+  saveState();
 
 })();
 </script>
