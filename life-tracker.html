@@ -623,7 +623,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
 
       <div class="section-block">
         <h2 class="section-title">Meals &amp; Food</h2>
-        <p class="section-sub">Build a meal by adding each food to it one at a time — macros fill in from a small built-in list or a barcode/SKU lookup, and you can adjust before adding. One photo per meal.</p>
+        <p class="section-sub">Build a meal by adding each food to it one at a time — macros fill in from a small built-in list, then fall back to a live Open Food Facts search (by name or barcode/SKU) if it's not in the list. Always adjustable before adding. One photo per meal.</p>
 
         <div class="food-form">
           <div class="food-form-row">
@@ -649,7 +649,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
               <input type="text" id="food-name-input" list="food-options" placeholder="e.g. banana" style="width:100%;">
               <datalist id="food-options"></datalist>
             </div>
-            <button id="food-lookup-name-btn">Fill Macros</button>
+            <button id="food-lookup-name-btn">Search &amp; Fill Macros</button>
           </div>
           <div class="food-form-row">
             <div class="field" style="flex:1;min-width:180px;">
@@ -1405,15 +1405,43 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     }
   }
 
+  function offNutrients(p){
+    var n = p.nutriments || {};
+    return {
+      name: p.product_name || p.generic_name || "Unnamed product",
+      servingLabel: "per 100g",
+      cals: n["energy-kcal_100g"] || 0,
+      protein: n["proteins_100g"] || 0,
+      carbs: n["carbohydrates_100g"] || 0,
+      fat: n["fat_100g"] || 0
+    };
+  }
+
   document.getElementById("food-lookup-name-btn").addEventListener("click", function(){
     var typed = document.getElementById("food-name-input").value;
     var f = findLocalFood(typed);
     if(f){
       fillMacroFields(f);
       setFoodStatus("Found \""+f.name+"\" ("+f.servingLabel+") in the built-in list — adjust servings below if needed.", "ok");
-    } else {
-      setFoodStatus("Not in the built-in list ("+FOOD_DB.length+" common foods) — enter macros manually below, or try a barcode.", "warn");
+      return;
     }
+    if(!typed.trim()){ setFoodStatus("Type a food name first.", "warn"); return; }
+    setFoodStatus("Not in the built-in list — searching Open Food Facts…");
+    fetch("https://world.openfoodfacts.org/cgi/search.pl?search_terms="+encodeURIComponent(typed)+"&search_simple=1&action=process&json=1&page_size=5")
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var products = (data.products||[]).filter(function(p){ return p.product_name && p.nutriments && p.nutriments["energy-kcal_100g"]; });
+        if(products.length){
+          var f2 = offNutrients(products[0]);
+          fillMacroFields(f2);
+          setFoodStatus("Found \""+f2.name+"\" on Open Food Facts — values are per 100g, adjust servings to match what you actually ate.", "ok");
+        } else {
+          setFoodStatus("Nothing found locally or on Open Food Facts for \""+typed+"\" — enter macros manually below.", "warn");
+        }
+      })
+      .catch(function(){
+        setFoodStatus("Not in the built-in list, and couldn't reach Open Food Facts from here — this live search only works when you open your saved life-tracker.html file directly (not this shared preview). Enter macros manually below for now.", "warn");
+      });
   });
 
   document.getElementById("food-lookup-barcode-btn").addEventListener("click", function(){
@@ -1424,16 +1452,9 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
       .then(function(r){ return r.json(); })
       .then(function(data){
         if(data && data.product && data.status === 1){
-          var p = data.product;
-          var n = p.nutriments || {};
-          var per100 = {
-            cals: n["energy-kcal_100g"] || 0,
-            protein: n["proteins_100g"] || 0,
-            carbs: n["carbohydrates_100g"] || 0,
-            fat: n["fat_100g"] || 0
-          };
-          fillMacroFields({name:p.product_name || ("Barcode "+code), servingLabel:"per 100g", cals:per100.cals, protein:per100.protein, carbs:per100.carbs, fat:per100.fat});
-          setFoodStatus("Found \""+(p.product_name||code)+"\" — values are per 100g, adjust servings to match what you actually ate.", "ok");
+          var f2 = offNutrients(data.product);
+          fillMacroFields(f2);
+          setFoodStatus("Found \""+f2.name+"\" — values are per 100g, adjust servings to match what you actually ate.", "ok");
         } else {
           setFoodStatus("No product found for that barcode — enter macros manually below.", "warn");
         }
