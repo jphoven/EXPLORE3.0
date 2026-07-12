@@ -325,8 +325,26 @@ button{font-family:inherit;}
   display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:var(--ink-2);
   border:1px solid var(--line);margin-bottom:6px;
 }
+.food-row{align-items:center;}
+.food-row .thumb{width:44px;height:44px;border-radius:9px;object-fit:cover;flex:0 0 auto;border:1px solid var(--line);}
 .food-row .name{flex:1;font-size:13.5px;font-weight:700;}
 .food-row .macros{font-size:11.5px;color:var(--cream-dim);}
+
+.photo-btn{
+  background:var(--ink);border:1px solid var(--line);color:var(--cream);border-radius:10px;
+  padding:9px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em;
+}
+.photo-btn:hover{border-color:var(--cobalt-pale);}
+.photo-preview{display:flex;align-items:center;gap:8px;}
+.photo-preview img{width:44px;height:44px;border-radius:9px;object-fit:cover;border:1px solid var(--line);}
+
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--ink-2);border:1px solid var(--tan);color:var(--cream);
+  padding:12px 20px;border-radius:12px;font-size:12.5px;box-shadow:var(--shadow);
+  z-index:200;max-width:380px;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s ease;
+}
+.toast.show{opacity:1;}
 
 /* project task groups */
 .task-group{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
@@ -580,6 +598,13 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
             <div class="field"><label for="food-carbs">Carbs (g)</label><input type="number" id="food-carbs" min="0" placeholder="0"></div>
             <div class="field"><label for="food-fat">Fat (g)</label><input type="number" id="food-fat" min="0" placeholder="0"></div>
             <div class="field"><label for="food-servings">Servings</label><input type="number" id="food-servings" min="0" step="0.5" value="1"></div>
+            <div class="field">
+              <label for="food-photo-input">Photo</label>
+              <input type="file" id="food-photo-input" accept="image/*" capture="environment" style="display:none;">
+              <div class="photo-preview" id="food-photo-preview">
+                <button type="button" class="photo-btn" id="food-photo-btn">📷 Add Photo</button>
+              </div>
+            </div>
             <button id="food-add-btn">Add to Today</button>
           </div>
         </div>
@@ -670,6 +695,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     <footer class="note">Bama Brooklyn Life Tracker — Work &amp; Personal data snapshotted from Notion and Google Calendar on Jul 11, 2026. Health is logged manually in this browser (localStorage) since Apple Health has no public API. Re-ask to refresh the Work/Personal snapshot anytime.</footer>
   </main>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
 (function(){
@@ -698,7 +724,20 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     state.foodLog = state.foodLog || {};
     return state;
   }
-  function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  function showToast(msg){
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){ el.classList.remove("show"); }, 5000);
+  }
+  function saveState(){
+    try{
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    }catch(e){
+      showToast("Storage is full (likely from meal photos) — that last change wasn't saved. Try deleting an older photo entry, then try again.");
+    }
+  }
   var state = loadState();
 
   function pad(n){ return n<10 ? "0"+n : ""+n; }
@@ -1265,6 +1304,46 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
       });
   });
 
+  // Photos are resized to a small JPEG thumbnail before storing — this all lives in
+  // localStorage, and raw phone photos would blow past its size limit within days.
+  var THUMB_MAX_DIM = 220, THUMB_QUALITY = 0.65;
+  var stagedPhoto = null;
+
+  function resetPhotoPicker(){
+    stagedPhoto = null;
+    document.getElementById("food-photo-input").value = "";
+    document.getElementById("food-photo-preview").innerHTML = '<button type="button" class="photo-btn" id="food-photo-btn">📷 Add Photo</button>';
+  }
+
+  document.getElementById("food-photo-btn").addEventListener("click", function(){
+    document.getElementById("food-photo-input").click();
+  });
+
+  document.getElementById("food-photo-input").addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var scale = Math.min(1, THUMB_MAX_DIM / Math.max(img.width, img.height));
+        var cw = Math.max(1, Math.round(img.width*scale)), ch = Math.max(1, Math.round(img.height*scale));
+        var canvas = document.createElement("canvas");
+        canvas.width = cw; canvas.height = ch;
+        canvas.getContext("2d").drawImage(img, 0, 0, cw, ch);
+        stagedPhoto = canvas.toDataURL("image/jpeg", THUMB_QUALITY);
+        document.getElementById("food-photo-preview").innerHTML =
+          '<img src="'+stagedPhoto+'" alt=""><button type="button" class="check-del" id="food-photo-clear">✕</button>';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.addEventListener("click", function(ev){
+    if(ev.target.id === "food-photo-clear"){ resetPhotoPicker(); }
+  });
+
   document.getElementById("food-add-btn").addEventListener("click", function(){
     var name = document.getElementById("food-name-input").value.trim() || "Food";
     var servings = Number(document.getElementById("food-servings").value) || 1;
@@ -1274,10 +1353,11 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     var fat = (Number(document.getElementById("food-fat").value)||0) * servings;
     var today = isoDate(new Date());
     state.foodLog[today] = state.foodLog[today] || [];
-    state.foodLog[today].push({id:"f"+Date.now()+Math.random().toString(16).slice(2), name:name, cals:cals, protein:protein, carbs:carbs, fat:fat});
+    state.foodLog[today].push({id:"f"+Date.now()+Math.random().toString(16).slice(2), name:name, cals:cals, protein:protein, carbs:carbs, fat:fat, photo:stagedPhoto});
     saveState();
     ["food-name-input","food-barcode-input","food-cals","food-protein","food-carbs","food-fat"].forEach(function(id){ document.getElementById(id).value = ""; });
     document.getElementById("food-servings").value = 1;
+    resetPhotoPicker();
     setFoodStatus("");
     renderFoodLog();
   });
@@ -1307,7 +1387,8 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
       listEl.innerHTML = '<div class="check-empty">Nothing logged today yet — add something above.</div>';
     } else {
       listEl.innerHTML = items.map(function(it){
-        return '<div class="food-row">'+
+        var thumb = it.photo ? '<img class="thumb" src="'+it.photo+'" alt="">' : "";
+        return '<div class="food-row">'+ thumb +
           '<div><div class="name">'+it.name+'</div>'+
           '<div class="macros">'+Math.round(it.cals)+' kcal · '+Math.round(it.protein*10)/10+'g P · '+Math.round(it.carbs*10)/10+'g C · '+Math.round(it.fat*10)/10+'g F</div></div>'+
           '<button class="check-del" data-action="deletefood" data-id="'+it.id+'">✕</button>'+
