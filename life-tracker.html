@@ -312,6 +312,19 @@ button{font-family:inherit;}
 .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--cobalt),var(--neon));border-radius:6px;transition:width .25s ease;}
 .progress-label{font-size:11px;color:var(--cream-dim);margin-top:7px;letter-spacing:0.03em;}
 
+/* workouts */
+.workout-row{
+  display:flex;align-items:center;gap:14px;padding:14px;border-radius:10px;background:var(--ink-2);
+  border:1px solid var(--line);margin-bottom:6px;
+}
+.workout-type{
+  font-family:var(--font-display);font-weight:900;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;
+  background:var(--cobalt);color:var(--ink);border-radius:8px;padding:8px 10px;flex:0 0 auto;text-align:center;min-width:64px;
+}
+.workout-row .name{font-size:13.5px;font-weight:700;}
+.workout-row .meta{font-size:11.5px;color:var(--cream-dim);margin-top:3px;}
+.workout-row .stats{flex:1;min-width:0;}
+
 /* food log */
 .food-form{
   background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);
@@ -668,6 +681,31 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
         <div id="food-log-list"></div>
       </div>
 
+      <div class="section-block">
+        <h2 class="section-title">Workouts</h2>
+        <p class="section-sub">Strava's connector needs a premium account to use here, so these get logged by hand — tell me about a run/ride/etc. and I'll add it, or fill the form in yourself.</p>
+
+        <div class="log-form">
+          <div class="field">
+            <label for="wk-type">Type</label>
+            <select id="wk-type" style="background:var(--ink);border:1px solid var(--line);color:var(--cream);border-radius:10px;padding:9px 12px;font-family:var(--font-mono);font-size:14px;">
+              <option>Run</option><option>Ride</option><option>Walk</option><option>Hike</option>
+              <option>Swim</option><option>Weights</option><option>Yoga</option><option>Other</option>
+            </select>
+          </div>
+          <div class="field"><label for="wk-date">Date</label><input type="date" id="wk-date"></div>
+          <div class="field"><label for="wk-title">Title</label><input type="text" id="wk-title" placeholder="e.g. Morning Run" style="width:170px;"></div>
+          <div class="field"><label for="wk-duration">Duration (min)</label><input type="number" id="wk-duration" min="0" placeholder="0"></div>
+          <div class="field"><label for="wk-distance">Distance (mi)</label><input type="number" id="wk-distance" min="0" step="0.01" placeholder="0"></div>
+          <div class="field"><label for="wk-hr">Avg HR</label><input type="number" id="wk-hr" min="0" placeholder="0"></div>
+          <button id="wk-add-btn">Add Workout</button>
+        </div>
+
+        <div class="stat-row" id="workout-stats"></div>
+
+        <div id="workout-list"></div>
+      </div>
+
       <h2 class="section-title">Upcoming Movement</h2>
       <p class="section-sub">From your calendar</p>
       <div class="movement-card">
@@ -800,6 +838,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     state.choresMonthlyDone = state.choresMonthlyDone || {};
     state.projectTasks = state.projectTasks || {};
     state.foodLog = state.foodLog || {};
+    state.workouts = state.workouts || [];
     return state;
   }
   function showToast(msg){
@@ -1532,6 +1571,85 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
       var today = isoDate(new Date());
       state.foodLog[today] = (state.foodLog[today]||[]).filter(function(i){ return i.id !== ev.target.dataset.id; });
       saveState(); renderFoodLog();
+    }
+  });
+
+  // ---------- WORKOUTS ----------
+  document.getElementById("wk-date").value = isoDate(new Date());
+
+  function fmtPace(minutes, miles){
+    if(!miles) return null;
+    var paceMin = minutes / miles;
+    var m = Math.floor(paceMin), s = Math.round((paceMin - m) * 60);
+    if(s === 60){ m += 1; s = 0; }
+    return m + ":" + pad(s) + " /mi";
+  }
+
+  document.getElementById("wk-add-btn").addEventListener("click", function(){
+    var date = document.getElementById("wk-date").value || isoDate(new Date());
+    var w = {
+      id: "w"+Date.now()+Math.random().toString(16).slice(2),
+      type: document.getElementById("wk-type").value,
+      date: date,
+      title: document.getElementById("wk-title").value.trim(),
+      duration: Number(document.getElementById("wk-duration").value)||0,
+      distance: Number(document.getElementById("wk-distance").value)||0,
+      avgHR: Number(document.getElementById("wk-hr").value)||0
+    };
+    state.workouts.push(w);
+    saveState();
+    ["wk-title","wk-duration","wk-distance","wk-hr"].forEach(function(id){ document.getElementById(id).value = ""; });
+    document.getElementById("wk-date").value = isoDate(new Date());
+    renderWorkouts();
+  });
+
+  function renderWorkouts(){
+    var sorted = state.workouts.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+
+    var weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+    var thisWeek = state.workouts.filter(function(w){ return new Date(w.date+"T00:00:00") >= weekAgo; });
+    var weekDuration = thisWeek.reduce(function(a,w){ return a+w.duration; }, 0);
+    var weekDistance = thisWeek.reduce(function(a,w){ return a+w.distance; }, 0);
+
+    document.getElementById("workout-stats").innerHTML = [
+      {label:"Workouts This Week", value:thisWeek.length, accent:"var(--cobalt)"},
+      {label:"Minutes This Week", value:weekDuration, accent:"var(--neon)"},
+      {label:"Miles This Week", value:Math.round(weekDistance*10)/10, accent:"var(--tan)"}
+    ].map(function(t){
+      return '<div class="stat-tile" style="--tile-accent:'+t.accent+'">'+
+        '<div class="stat-label">'+t.label+'</div>'+
+        '<div class="stat-value">'+t.value+'</div>'+
+      '</div>';
+    }).join("");
+
+    var listEl = document.getElementById("workout-list");
+    if(!sorted.length){
+      listEl.innerHTML = '<div class="check-empty">No workouts logged yet — add one above, or send me a Strava run to add.</div>';
+    } else {
+      listEl.innerHTML = sorted.map(function(w){
+        var pace = fmtPace(w.duration, w.distance);
+        var bits = [];
+        if(w.duration) bits.push(w.duration+" min");
+        if(w.distance) bits.push(w.distance+" mi");
+        if(pace) bits.push(pace);
+        if(w.avgHR) bits.push(w.avgHR+" bpm avg");
+        return '<div class="workout-row">'+
+          '<div class="workout-type">'+w.type+'</div>'+
+          '<div class="stats">'+
+            '<div class="name">'+(w.title || w.type)+'</div>'+
+            '<div class="meta">'+fmtDateShort(w.date)+(bits.length ? " · "+bits.join(" · ") : "")+'</div>'+
+          '</div>'+
+          '<button class="check-del" data-action="deleteworkout" data-id="'+w.id+'">✕</button>'+
+        '</div>';
+      }).join("");
+    }
+  }
+  renderWorkouts();
+
+  document.addEventListener("click", function(ev){
+    if(ev.target.dataset && ev.target.dataset.action === "deleteworkout"){
+      state.workouts = state.workouts.filter(function(w){ return w.id !== ev.target.dataset.id; });
+      saveState(); renderWorkouts();
     }
   });
 
