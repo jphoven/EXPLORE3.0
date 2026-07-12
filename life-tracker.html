@@ -753,6 +753,16 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
       </div>
 
       <div class="section-block">
+        <h2 class="section-title">Shopping List</h2>
+        <p class="section-sub">Whatever needs picking up — check items off as you get them</p>
+        <div class="checklist" id="shopping-checklist"></div>
+        <div class="add-row">
+          <input type="text" id="shopping-add-input" placeholder="Add something to buy…" maxlength="140">
+          <button id="shopping-add-btn">Add</button>
+        </div>
+      </div>
+
+      <div class="section-block">
         <h2 class="section-title">Cool Stuff To Watch</h2>
         <p class="section-sub">Movies &amp; shows on the list — check off once watched</p>
         <div class="checklist" id="watch-checklist"></div>
@@ -829,6 +839,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     ];
     state.personalTodos = state.personalTodos || [];
     state.houseTodos = state.houseTodos || [];
+    state.shoppingList = state.shoppingList || [];
     state.watchList = state.watchList || [];
     state.supplements = state.supplements || [];
     state.pillLog = state.pillLog || {};
@@ -1106,6 +1117,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
     renderChecklist("workTodos","work-checklist");
     renderChecklist("personalTodos","personal-checklist");
     renderChecklist("houseTodos","house-checklist");
+    renderChecklist("shoppingList","shopping-checklist");
     renderChecklist("watchList","watch-checklist");
   }
   renderAllChecklists();
@@ -1164,6 +1176,7 @@ footer.note{margin-top:50px;font-size:11px;color:var(--cream-dim);border-top:1px
   wireAdd("work-add-input","work-add-btn","workTodos");
   wireAdd("personal-add-input","personal-add-btn","personalTodos");
   wireAdd("house-add-input","house-add-btn","houseTodos");
+  wireAdd("shopping-add-input","shopping-add-btn","shoppingList");
   wireAdd("watch-add-input","watch-add-btn","watchList");
 
   // ---------- PERIODIC LISTS (pills / weekly & monthly chores) ----------
